@@ -4,17 +4,15 @@ import java.util.Observable;
 
 public class Tamagotchi extends Observable {
 	
-	private static Tamagotchi miTama = new Tamagotchi();
+	private static Tamagotchi miTama;
 	
 	private TamaState state;
+	private SaludState saludState;
 	
 	private int vivo;
 	private int corazones;
 	private int apetito;
 	private String nombre;
-	
-	private int enfermo;
-	private int sucio;
 	
 
 	
@@ -30,16 +28,18 @@ public class Tamagotchi extends Observable {
 		corazones = 40;
 		apetito = 40;
 		vivo = 1;
-		enfermo = 0;
-		sucio = 0;
+		
+		saludState=new Sano();
 		
 		setChanged();
-		notifyObservers(new int[] {vivo, corazones, apetito, enfermo, sucio});
+		notifyObservers(new int[] {vivo, corazones, apetito, 0, 0});
 		changeState(new Huevo());
 	}
 	
 	public static Tamagotchi getTamagotchi() {
-		
+		if (miTama==null) {
+			miTama=new Tamagotchi();
+		}
 		return miTama;
 		
 	}
@@ -48,7 +48,7 @@ public class Tamagotchi extends Observable {
 		
 		int num= 0;
 		state = pState;
-		
+		GestorEventosTama.getGestorEventosTama().actualizarOro(15);
 		if(state instanceof Huevo) {
 			nombre=state.getNombreTama();
 			num = 0;
@@ -59,7 +59,7 @@ public class Tamagotchi extends Observable {
 			num = 1;
 		
 		}
-		else if(state instanceof Dracónido) {
+		else if(state instanceof DracÃ³nido) {
 			nombre=state.getNombreTama();
 			num = 2;
 			
@@ -73,36 +73,43 @@ public class Tamagotchi extends Observable {
 			nombre=state.getNombreTama();
 			num = 4;
 					}
+		else if(state instanceof DragonAvaricioso) {
+			nombre=state.getNombreTama();
+			num = 5;
+					}
+		else if(state instanceof DragonNormal) {
+			nombre=state.getNombreTama();
+			num = 6;
+					}
 		
 		setChanged();
 		notifyObservers(new int[] {4, num});
 		
 	}
 	
-
+   public void setHambreYAburrimiento(int pAburrido,int pHambre) {
+	    corazones = corazones - pAburrido;
+		apetito = apetito + pHambre;
+	   
+   }
 	
 	
 	
 	public void aburrirYDarHambre() {
-			
-			
-			if(enfermo == 1) {
-				
-				corazones = corazones - 7;
-				apetito = apetito + 5;
-				
-			}
-			
-			if(sucio == 1) {
-				
-				corazones = corazones - 5;
-				apetito = apetito + 10;
-				
-			}
-			
-			corazones = corazones - state.getAburrimiento();
+		 int enfermo=0;
+		 int sucio=0;
+		 int i=this.saludState.afectar();	
+	     if(i==1) {
+	    	 enfermo=1;
+			 sucio=0;
+	     }else if (i==2){
+	    	 enfermo=0;
+			 sucio=1;
+	     }
+		 if (!this.estaSucioOEnfermo()) {
 			apetito = apetito - state.getHambre();
-			
+		 }	
+		 corazones = corazones - state.getAburrimiento();
 			
 			if (apetito > 40) {
 				
@@ -121,29 +128,31 @@ public class Tamagotchi extends Observable {
 	}
 	
 	public void ponerEnfermo() {
-		enfermo = 1;
+		saludState=new Enfermo();
 		setChanged();
-		notifyObservers(new int[] {vivo, corazones, apetito, enfermo, sucio});
+		notifyObservers(new int[] {vivo, corazones, apetito,1, 0});
 	}
 	
 	public void ponerSucio() {
-		sucio = 1;
+		saludState=new Sucio();
 		setChanged();
-		notifyObservers(new int[] {vivo, corazones, apetito, enfermo, sucio});
+		notifyObservers(new int[] {vivo, corazones, apetito, 0, 1});
 	}
 	
 	public void curar() {
-		
-		enfermo = 0;
+		saludState= new Sano();
+		GestorEventosTama.getGestorEventosTama().setChiv(false);
+		GestorEventosTama.getGestorEventosTama().actualizarOro(10);
 		setChanged();
-		notifyObservers(new int[] {vivo, corazones, apetito, enfermo, sucio});
+		notifyObservers(new int[] {vivo, corazones, apetito, 0, 0});
 	}
 	
 	public void limpiar() {
-		
-		sucio = 0;
+		saludState= new Sano();
+		GestorEventosTama.getGestorEventosTama().setChiv(false);
+		GestorEventosTama.getGestorEventosTama().actualizarOro(10);
 		setChanged();
-		notifyObservers(new int[] {vivo, corazones, apetito, enfermo, sucio});
+		notifyObservers(new int[] {vivo, corazones, apetito, 0, 0});
 	}
 	
 	
@@ -156,8 +165,11 @@ public class Tamagotchi extends Observable {
 	}
 
 	public boolean estaSucioOEnfermo() {
-		
-		return (enfermo == 1 || sucio == 1);
+		boolean chiv=true;
+		if(saludState instanceof Sano) {
+			chiv=false;
+		}
+		return (chiv);
 	}
 	
 	public TamaState getState() {
@@ -166,6 +178,18 @@ public class Tamagotchi extends Observable {
 	}
 	
 	public boolean cuidar (int pPotencia) {
+		 int enfermo=0;
+		 int sucio=0;
+		if(saludState instanceof Enfermo) {
+			enfermo=1;
+			
+			
+		}
+		
+		if(saludState instanceof Sucio) {
+			sucio=1;
+			
+		}
 
 		
 		boolean sePasa = false;
@@ -180,7 +204,7 @@ public class Tamagotchi extends Observable {
 		corazones = 40;
 		}
 		 
-		
+		GestorEventosTama.getGestorEventosTama().actualizarOro(1);
 		  setChanged();
 		  notifyObservers(new int[] {vivo, corazones, apetito, enfermo, sucio});
 		  return sePasa;
@@ -188,6 +212,19 @@ public class Tamagotchi extends Observable {
 	
 	
 	  public boolean comer (int pPotencia) {
+		     int enfermo=0;
+			 int sucio=0;
+			if(saludState instanceof Enfermo) {
+				enfermo=1;
+				
+				
+			}
+			
+			if(saludState instanceof Sucio) {
+				sucio=1;
+				
+			}
+
 
 		  
 		  boolean sePasa = false;
@@ -204,7 +241,7 @@ public class Tamagotchi extends Observable {
 		  }
 	
 		  
-
+		  GestorEventosTama.getGestorEventosTama().actualizarOro(1);
 		  setChanged();
 		  notifyObservers(new int[] {vivo, corazones, apetito, enfermo, sucio});
 		  
